@@ -28,20 +28,20 @@ The videos were incorrectly named but are actually different variations of the s
 
 
   # Install Instructions:
-        - Download Duplicate-Media-Finder.zip from GitHub
-            - Top Right Hand Corner Click "Code"
-            - Select "Download Zip"
-        - Extract Files to a desired location
-        - Right Click on "DMF.ps1"
-        - Click "Edit"     (This should open up Bullet Blender in Powershell ISE)
-        - Once PowerShell ISE is opened. Click the Green Play Arrow.
-        - Download FFmpeg: https://www.ffmpeg.org/download.html 
-        - Install/Extract FFmpeg to desired location 
+  - Download Duplicate-Media-Finder.zip from GitHub
+      - Top Right Hand Corner Click "Code"
+      - Select "Download Zip"
+  - Extract Files to a desired location
+  - Right Click on "DMF.ps1"
+  - Click "Edit"     (This should open up Bullet Blender in Powershell ISE)
+  - Once PowerShell ISE is opened. Click the Green Play Arrow.
+  - Download FFmpeg: https://www.ffmpeg.org/download.html 
+  - Install/Extract FFmpeg to desired location 
   [FFmpeg](https://www.ffmpeg.org/download.html)  
   
-            - (FFprobe is required to be in the same directory as FFmpeg)
-        - Select the FFmpeg.exe via interface
-        - Success
+      - (FFprobe is required to be in the same directory as FFmpeg)
+  - Select the FFmpeg.exe via interface
+  - Success
         
 
   # Possible Errors:
