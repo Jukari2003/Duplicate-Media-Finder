@@ -35,24 +35,22 @@ The videos were incorrectly named but are actually different variations of the s
   - Right Click on "DMF.ps1"
   - Click "Edit"     (This should open up Bullet Blender in Powershell ISE)
   - Once PowerShell ISE is opened. Click the Green Play Arrow.
-  - Download FFmpeg: https://www.ffmpeg.org/download.html 
+  - Download FFmpeg: https://www.ffmpeg.org/download.html [FFmpeg](https://www.ffmpeg.org/download.html) 
   - Install/Extract FFmpeg to desired location 
-  [FFmpeg](https://www.ffmpeg.org/download.html)  
-  
       - (FFprobe is required to be in the same directory as FFmpeg)
   - Select the FFmpeg.exe via interface
   - Success
         
 
   # Possible Errors:
-        - Execution-Policy 
-            - Some systems may prevent you from executing the script even in PowerShell ISE.
-                -   On a Home Computer: Run PowerShell ISE or PowerShell as an administrator
-                    - Type the command:
-                         -  Set-ExecutionPolicy Unrestricted
-                    - Type 
-                        -  Y
-  
-        - You're on a MAC
-            - You will need to install PowerShell for MAC
-                - https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell-core-on-macos?view=powershell-7.1
+- Execution-Policy 
+  - Some systems may prevent you from executing the script even in PowerShell ISE.
+      -   On a Home Computer: Run PowerShell ISE or PowerShell as an administrator
+          - Type the command:
+               -  Set-ExecutionPolicy Unrestricted
+          - Type 
+              -  Y
+
+- You're on a MAC
+  - You will need to install PowerShell for MAC
+      - https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell-core-on-macos?view=powershell-7.1
