@@ -22,7 +22,7 @@ The videos were incorrectly named but are actually different variations of the s
 ![alt text](https://github.com/Jukari2003/Duplicate-Media-Finder/blob/main/Documentation/How%20it%20works.png)
 
 <br/><br/>
-[FFmpeg](https://www.ffmpeg.org/download.html) 
+
 
 
 
@@ -36,7 +36,9 @@ The videos were incorrectly named but are actually different variations of the s
         - Click "Edit"     (This should open up Bullet Blender in Powershell ISE)
         - Once PowerShell ISE is opened. Click the Green Play Arrow.
         - Download FFmpeg: https://www.ffmpeg.org/download.html 
-        - Install/Extract FFmpeg to desired location
+        - Install/Extract FFmpeg to desired location 
+  [FFmpeg](https://www.ffmpeg.org/download.html)  
+  
             - (FFprobe is required to be in the same directory as FFmpeg)
         - Select the FFmpeg.exe via interface
         - Success
