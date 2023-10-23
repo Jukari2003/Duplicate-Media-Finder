@@ -13,7 +13,7 @@ In this example, the script had detected 5 videos that are duplicates in the "Fi
 <br/><br/>
 
 ## Example of Duplicate Videos Found
-The videos were incorrectly named but they are the same video. 
+The videos were incorrectly named but are actually different variations of the same video.
 ![alt text](https://github.com/Jukari2003/Duplicate-Media-Finder/blob/main/Documentation/Duplicate%20Videos%20Example.png)
 
 <br/><br/>
