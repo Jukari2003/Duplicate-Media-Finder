@@ -6,12 +6,14 @@ Duplicate Media Finder is a non-hash-based media comparison tool. Instead of usi
 <br/><br/><br/><br/>
 
 ## Example Output
+In this example, the script had detected 5 videos that are duplicates in the "First 48" folder. 
 ![alt text](https://github.com/Jukari2003/Duplicate-Media-Finder/blob/main/Documentation/Example%20Output.png?raw=true)
 
 
 <br/><br/>
 
-## Example of Duplicate Videos Found (Incorrectly Named) 
+## Example of Duplicate Videos Found
+The videos were incorrectly named but they are the same video. 
 ![alt text](https://github.com/Jukari2003/Duplicate-Media-Finder/blob/main/Documentation/Duplicate%20Videos%20Example.png)
 
 <br/><br/>
