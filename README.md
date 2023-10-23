@@ -7,6 +7,10 @@ Duplicate Media Finder is a non-hash-based media comparison tool. Instead of usi
 ## Example Output
 ![alt text](https://github.com/Jukari2003/Duplicate-Media-Finder/blob/main/Documentation/Example%20Output.png?raw=true)
 
+
+
+
+## Example of Duplicate Videos Found (Incorrectly Named) 
 ![alt text](https://github.com/Jukari2003/Duplicate-Media-Finder/blob/main/Documentation/Duplicate%20Videos%20Example.png)
 
 ![alt text](https://github.com/Jukari2003/Duplicate-Media-Finder/blob/main/Documentation/How%20it%20works.png)
