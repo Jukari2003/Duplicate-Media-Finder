@@ -23,3 +23,34 @@ The videos were incorrectly named but are actually different variations of the s
 
 <br/><br/>
 [FFmpeg](https://www.ffmpeg.org/download.html) 
+
+
+
+
+  # Install Instructions:
+        - Download Duplicate-Media-Finder.zip from GitHub
+            - Top Right Hand Corner Click "Code"
+            - Select "Download Zip"
+        - Extract Files to a desired location
+        - Right Click on "DMF.ps1"
+        - Click "Edit"     (This should open up Bullet Blender in Powershell ISE)
+        - Once PowerShell ISE is opened. Click the Green Play Arrow.
+        - Download FFmpeg: https://www.ffmpeg.org/download.html 
+        - Install/Extract FFmpeg to desired location
+            - (FFprobe is required to be in the same directory as FFmpeg)
+        - Select the FFmpeg.exe via interface
+        - Success
+        
+
+  # Possible Errors:
+        - Execution-Policy 
+            - Some systems may prevent you from executing the script even in PowerShell ISE.
+                -   On a Home Computer: Run PowerShell ISE or PowerShell as an administrator
+                    - Type the command:
+                         -  Set-ExecutionPolicy Unrestricted
+                    - Type 
+                        -  Y
+  
+        - You're on a MAC
+            - You will need to install PowerShell for MAC
+                - https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell-core-on-macos?view=powershell-7.1
