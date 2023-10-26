@@ -1013,7 +1013,7 @@ $script:duration_threshold = 25
     #e.g. Set at 25 = 4 Seconds for a 30 Second video
     #e.g. Set at 25 = 34 Seconds for a 120 minute video
 
-$script:keep_screenshots = 1;
+$script:keep_screenshots = 0;
     #0 = Will Delete Screenshots
     #1 = Will Keep Screenshots
 
