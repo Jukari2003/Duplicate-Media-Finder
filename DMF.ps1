@@ -30,7 +30,7 @@ $Window = [Windows.Markup.XamlReader]::Load($Reader)
 ################################################################################
 ######Global Variables##########################################################
 $script:program_title = "Duplicate Media Finder"
-$script:version = "2.0"
+$script:version = "2.1"
 $script:settings = @{};
 
 
@@ -1384,11 +1384,6 @@ function scan_directory
         [int]$script:overall_green = 0;
         [int]$script:overall_blue = 0;
 
-        ########Calculated Var Settings
-        ([int]$hours,[int]$minutes,[int]$seconds) = $script:duration -split ":"
-        [int]$script:duration_seconds = (($seconds + ($minutes * 60) + ($hours * 60 * 60)))
-        [int]$script:duration_offset = [Math]::Log10($script:duration_seconds) * ([Math]::Sqrt($script:duration_seconds) * 2) * ($script:duration_threshold / 100)
-
             
         ################################################################################
         ####Continue From Last Scan#####################################################
@@ -1855,8 +1850,15 @@ function determine_media_type
         $script:db_location = $script:db_videos + "\"
         $script:color_distance_phase1 = $script:color_distance_video_phase1
         $script:color_distance_phase2 = $script:color_distance_video_phase2  
-        if(($script:extension -match ".gif$") -or ($script:duration -eq 0))
+
+        ##Intitial Duration Attempt
+        ([int]$hours,[int]$minutes,[int]$seconds) = $script:duration -split ":"
+        [int]$script:duration_seconds = (($seconds + ($minutes * 60) + ($hours * 60 * 60)))
+        [int]$script:duration_offset = [Math]::Log10($script:duration_seconds) * ([Math]::Sqrt($script:duration_seconds) * 2) * ($script:duration_threshold / 100)
+
+        if(($script:extension -match ".gif$") -or ($script:duration_seconds -eq 0))
         {
+            #send_single_output "FF $script:ffprobe"
             [string]$execute = & cmd /u /c  "$script:ffprobe -i `"$script:full_path`" -show_streams -select_streams a 2>&1"
             $script:duration = $execute.Substring(($execute.IndexOf("Duration:") + 10),8)
             ([int]$hours,[int]$minutes,[int]$seconds) = $script:duration -split ":"
@@ -2014,6 +2016,8 @@ function generate_keys
                 try
                 {
                     $console = & cmd /u /c  "$script:ffmpeg -i `"$script:full_path`" -hide_banner -loglevel error -ss $sample_location -vframes 1 `"$projected_name`" -y"
+
+                    #send_single_output "-ForegroundColor Red " "SS $sample_location"
                 }
                 catch
                 {
@@ -2031,7 +2035,7 @@ function generate_keys
                 { 
                     send_single_output "-ForegroundColor Red " "     Failed Image!"
                 }                
-                send_single_output "     Building Keys for Screenshot $sample_count"
+                send_single_output "     Building Keys for Screenshot $sample_count @ $sample_location Seconds"
             }
             else
             {
@@ -3734,7 +3738,7 @@ send_single_output "                    "
 ######Update Log Paths #########################################################
 function update_log_paths
 {
-    Write-host Writing Log
+    #Write-host Writing Log
     $script:rename_tracker = $script:settings['Log_Folder'] + "\Rename Tracker.txt"
     $script:snapshot       = $script:settings['Log_Folder'] + "\Snapshot.txt"
     if(!(Test-Path -LiteralPath $script:snapshot))
@@ -3771,7 +3775,10 @@ function update_editor
 load_settings
 main
 
-
+#Ver 2.1
+#Bug Fixed: Failed duration detection would generate invalid keys & invalid matches
+#Setting: Disabled Keep Screenshots
+#
 
 
 
