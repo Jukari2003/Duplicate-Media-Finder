@@ -30,7 +30,7 @@ $Window = [Windows.Markup.XamlReader]::Load($Reader)
 ################################################################################
 ######Global Variables##########################################################
 $script:program_title = "Duplicate Media Finder"
-$script:version = "2.1"
+$script:version = "2.2"
 $script:settings = @{};
 
 
@@ -1043,6 +1043,7 @@ $script:color_distance_phase1 = 0;                                     #Switches
 $script:color_distance_phase2 = 0;                                     #Switches Between Video & Images
 $script:superior_file = "";                                            #The Current Superior File
 $script:duplicate_file = "";                                           #The Current Duplicate File
+$script:known_duplicate_file = "";                                     #Variable for the known Duplicate File
 [int]$script:settings['Match_Count'] = $script:settings['Match_Count'] #Converts to [Int]
 [int]$script:overall_red = 0;                                          #Overall Red Value for Current File
 [int]$script:overall_green = 0;                                        #Overall Green Value for Current File
@@ -1173,13 +1174,21 @@ function initial_checks
     ##Create Log Files
     if(($script:settings['Log_Folder'] -eq $null) -or ($script:settings['Log_Folder'] -eq"") -or (!(Test-Path $script:settings['Log_Folder'])))
     {
+        ##Create New
         $script:settings['Log_Folder'] = build_log_entry
         $script:settings['Log_Folder'] = "$script:db_folder\Logs\" + $script:settings['Log_Folder'] 
         New-Item -ItemType Directory $script:settings['Log_Folder'] | Out-Null     
         $script:settings['Log_File']           =  $script:settings['Log_Folder'] + "\Log.csv";
-        $script:settings['Rename_Tracker']     =  $script:settings['Log_Folder'] + "\Rename Tracker.txt";
+        $script:settings['Rename_Tracker']     =  $script:settings['Log_Folder'] + "\Rename Tracker.txt";   
         Add-Content -LiteralPath $script:settings['Log_File'] "Mode,Source,Destination,File Match,Pass Level,Direct Hits,Direct Zone Hits,Direct Zone Avg,Direct Weight,Grad Hits,Grad Zone Hits,Grad Zone Avg,Grad Weight,Combined Hits,Combined Zones,Combined Zone Avg,Combined Weight,Super Direct,Super Grad,Super Ultra"
-        Add-Content -LiteralPath $script:settings['Rename_Tracker'] "Original Duplicate File & Parent File"
+        Add-Content -LiteralPath $script:settings['Rename_Tracker'] "Original Duplicate File & Parent File"    
+        #send_single_output "Log:" $script:settings['Log_Folder']
+    }
+    else
+    {
+        #Use Exisiting
+        $script:settings['Log_File']           =  $script:settings['Log_Folder'] + "\Log.csv";
+        $script:settings['Rename_Tracker']     =  $script:settings['Log_Folder'] + "\Rename Tracker.txt";  
     }
     send_single_output "Log-" $script:settings['Log_Folder']
     
@@ -1196,6 +1205,56 @@ function build_log_entry
     $date = $date.replace('/',"-");
     $date = $date.replace(':',".");
     return $date
+}
+################################################################################
+######Load Known Duplicates ###################################################
+function load_known_duplicates
+{
+    $script:known_duplicate_file           =  $script:db_folder +  "\Known Duplicates.csv"
+
+    #########Create File if doesn't exist
+    if(!(Test-Path -LiteralPath $script:known_duplicate_file))
+    {
+        Add-Content -LiteralPath $script:known_duplicate_file "Duplicate File, Superior File"
+        return;
+    }
+
+    #########Slurp Duplicates
+    $temp_file = $script:known_duplicate_file -replace ".csv$","_temp.csv"  
+    $line_count = 1; #Account for header
+    $writer = [System.IO.StreamWriter]::new($temp_file) 
+    $reader = New-Object IO.StreamReader $script:known_duplicate_file    
+    while($null -ne ($line = $reader.ReadLine()))
+    {
+        $line_array = csv_line_to_array $line
+        if(($line_array[0] -ne "") -and ($line_array[1] -ne ""))
+        {
+            if((Test-Path -LiteralPath $line_array[0]) -and (Test-Path -LiteralPath $line_array[1]))
+            {
+                if(!($script:duplicate_tracker.Contains($line_array[0])))
+                {
+                    $line_count++
+                    $script:duplicate_tracker.Add($line_array[0],$line_array[1])
+                    #send_single_output "Added: $line"
+                    $writer.WriteLine($line)
+                }
+            }
+        }
+    }
+    $reader.Close()
+    $writer.Close()
+    if(Test-Path -LiteralPath $temp_file)
+    {
+        if($line_count -ge 2)
+        {
+            Remove-Item -LiteralPath $script:known_duplicate_file
+            Move-Item -LiteralPath $temp_file $script:known_duplicate_file
+        }
+        else
+        {
+            Remove-Item -LiteralPath $temp_file
+        }
+    }
 }
 ################################################################################
 ######Load & Verify Existing Keys ##############################################
@@ -1730,10 +1789,6 @@ function scan_directory
         ################################################################################
         #####End File Scan Process #####################################################
         end_file_scan_process
-        if($script:is_duplicate -ne "No")
-        {
-            send_single_output "SNAP-"
-        }
            
     }#Foreach File
     if($script:skipped_files -ne 0)
@@ -1787,7 +1842,35 @@ function continue_from_last_scan
 function skip_database_files
 {
     $script:skipit = "No"
-    if((($script:settings['Skip_Known_Files'] -eq 1) -and ($script:existing_keys.Contains($script:object.FullName))) -or (($script:settings['Skip_Known_Files'] -eq 1) -and ($script:object.FullName -match " - Duplicate \d+")))
+    if(($script:settings['Skip_Known_Files'] -eq 1) -and ($script:duplicate_tracker.Contains($script:object.FullName)))
+    {
+            send_single_output " "
+            send_single_output "-ForegroundColor Cyan " "     -----------------------------------------------------------------------------------------"
+            send_single_output " "
+            send_single_output "     Skipped Duplicate: " $script:object.FullName
+            $script:superior_file = $script:duplicate_tracker[$script:object.FullName]
+            $script:duplicate_file = $script:object.FullName
+
+            if(!(Test-path -LiteralPath $script:superior_file))
+            {
+                send_single_output "-ForegroundColor Red " "     Missing " $script:superior_file
+            }
+
+            $script:settings['Match_Count']++;
+            $script:action = "Previous Match"
+            log_it
+            send_single_output "-ForegroundColor Green " "     Superior File:  $script:superior_file"
+            send_single_output "-ForegroundColor Green " "     Duplicate File: $script:duplicate_file"
+          
+            send_single_output "TXR-" " "
+            send_single_output "TXR-" "Previous Match " $script:settings['Match_Count']
+            send_single_output "TX-" "Superior File   "
+            send_single_output "LN-"  "$script:superior_file"
+            send_single_output "TX-" "Duplicate File  "
+            send_single_output "LN-" "$script:duplicate_file"
+            end_file_scan_process
+    }
+    elseif((($script:settings['Skip_Known_Files'] -eq 1) -and ($script:existing_keys.Contains($script:object.FullName))) -or (($script:settings['Skip_Known_Files'] -eq 1) -and ($script:object.FullName -match " - Duplicate \d+")))
     {
         $script:skipit = "Yes"
         if($script:object.FullName -match " - Duplicate \d+")
@@ -2888,6 +2971,11 @@ function duplicate_response_actions
                 send_single_output "TX-" "Duplicate File  "
                 send_single_output "LN-" "$script:duplicate_file"
 
+                $line = "";
+                $line = csv_write_line $line $script:duplicate_file 
+                $line = csv_write_line $line $script:superior_file
+                Add-Content -LiteralPath $script:known_duplicate_file $line
+
                 write_duplicate_tracker
             }
             ################################################################################
@@ -2898,6 +2986,11 @@ function duplicate_response_actions
                 rename_files
                 log_it  
             
+                $line = "";
+                $line = csv_write_line $line $script:new_name
+                $line = csv_write_line $line $script:superior_file
+                Add-Content -LiteralPath $script:known_duplicate_file $line
+
                 write_duplicate_tracker
             }
             ################################################################################
@@ -2916,6 +3009,7 @@ function duplicate_response_actions
         {
             #write-host DUPLICATE IN TRACKER!
         }
+        send_single_output "SNAP-"
     }
     ################################################################################
     #####Partial Match #############################################################
@@ -3114,7 +3208,10 @@ function rename_files
                 send_single_output "TX-" "            Child:  "
                 send_single_output "LN-" $new_borg_name
 
-
+                $line = "";
+                $line = csv_write_line $line $new_borg_name
+                $line = csv_write_line $line $script:superior_file
+                Add-Content -LiteralPath $script:known_duplicate_file $line
                         
                 break;
             }
@@ -3311,6 +3408,9 @@ function log_it
     $file_link2 = "=HYPERLINK(`"`"$script:duplicate_file`"`",`"`"Partial`"`")";
     $file_link3 = "=HYPERLINK(`"`"$script:new_name`"`",`"`"Rename`"`")";
     $file_link4 = "=HYPERLINK(`"`"$script:duplicate_file`"`",`"`"Duplicate`"`")";
+
+    #send_single_output "Status: $script:duplicate_file"
+
 
     if($script:action -eq "Renamed")
     {
@@ -3605,6 +3705,9 @@ send_single_output "-ForegroundColor Cyan " "-----------------------------------
 send_single_output "-ForegroundColor Cyan "  "Initializing"
 send_single_output "PL-Initializing"
 initial_checks
+send_single_output "-ForegroundColor Cyan " "Loading Known Duplicates"
+send_single_output "PL-Checking Keys"
+load_known_duplicates
 send_single_output "-ForegroundColor Cyan " "Checking Keys"
 send_single_output "PL-Checking Keys"
 load_existing_keys
@@ -3752,7 +3855,7 @@ function update_log_paths
 #Updates Information In Gui
 function update_editor
 {
-    Write-host Updating Snapshot
+    #Write-host Updating Snapshot
     if(Test-Path -LiteralPath $script:rename_tracker)
     {
         $tracker = Get-Content $script:rename_tracker
@@ -3779,6 +3882,8 @@ main
 #Bug Fixed: Failed duration detection would generate invalid keys & invalid matches
 #Setting: Disabled Keep Screenshots
 #
-
+#Ver 2.2
+#Added Duplicate Tracking System for non-rename events, this is persistent accross any scan done to the same database.
+#
 
 
