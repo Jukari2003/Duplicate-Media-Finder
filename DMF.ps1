@@ -30,7 +30,7 @@ $Window = [Windows.Markup.XamlReader]::Load($Reader)
 ################################################################################
 ######Global Variables##########################################################
 $script:program_title = "Duplicate Media Finder"
-$script:version = "2.2"
+$script:version = "2.3"
 $script:settings = @{};
 
 
@@ -1234,7 +1234,15 @@ function load_known_duplicates
                 if(!($script:duplicate_tracker.Contains($line_array[0])))
                 {
                     $line_count++
-                    $script:duplicate_tracker.Add($line_array[0],$line_array[1])
+                    if(($line_array[2] -ne $null) -and ($line_array[2] -ne "") -and ($line_array[2] -match "Ignore"))
+                    {
+                        #Ignore Duplicate
+                        send_single_output "Ignored: " $line_array[0]
+                    }
+                    else
+                    {
+                        $script:duplicate_tracker.Add($line_array[0],$line_array[1])
+                    }
                     #send_single_output "Added: $line"
                     $writer.WriteLine($line)
                 }
@@ -1389,6 +1397,8 @@ function load_existing_keys
 ######Scan Directory Main ######################################################
 function scan_directory
 {
+    
+
     ################################################################################
     ####Media Mode File Scan #######################################################
     #Slurp File Directory to $script:file_list
@@ -1408,12 +1418,31 @@ function scan_directory
     send_single_output "PB-0"             #Set GUI Process Bar to Zero
     foreach($script:object in $script:file_list | sort FullName)
     {
+        ################################################################################
+        ####Early Variables
+        $script:process_time_start = Get-Date #Start Process
+        $script:file_counter++;               #Increment Counts
+
+        ################################################################################
+        ####Verify File Exists #########################################################
         if(!(Test-Path -LiteralPath $script:object.FullName))
         {
             send_single_output "-ForegroundColor Yellow " "File was renamed during execution: " $script:object.FullName     
             Continue;
         }
 
+        ################################################################################
+        ####Continue From Last Scan#####################################################
+        #Skips to a previous scan stop point
+        continue_from_last_scan
+        
+
+        ################################################################################
+        ####Skip Database Files ########################################################
+        $script:skipit = "No"
+        #Skips Files in Database
+        skip_database_files
+        if($script:skipit -eq "Yes"){Continue;}
 
         ################################################################################
         ####Current File Global Variables###############################################      
@@ -1427,8 +1456,6 @@ function scan_directory
         ########Default Vars
         $script:possible_dbs = @{};           #Holds all possible matching DBs
         $script:finger_prints = @{}           #Holds Scan File Finger Prints
-        $script:process_time_start = Get-Date #Start Process
-        $script:file_counter++;               #Increment Counts
         $script:media_type = "Failed"         #Type of media Images/Video
         $script:database = ""                 #Save File Name of Database
         $script:db_location = ""              #Video or Image DB Location
@@ -1444,18 +1471,7 @@ function scan_directory
         [int]$script:overall_blue = 0;
 
             
-        ################################################################################
-        ####Continue From Last Scan#####################################################
-        #Skips to a previous scan stop point
-        continue_from_last_scan
         
-
-        ################################################################################
-        ####Skip Database Files ########################################################
-        $script:skipit = "No"
-        #Skips Files in Database
-        skip_database_files
-        if($script:skipit -eq "Yes"){Continue;}
 
 
         ################################################################################
@@ -3740,92 +3756,83 @@ send_single_output "                    "
 }#Job
     ##################################################################################
     #####Start Job & Display Output ##################################################
-    $first = 1;
     $script:cycler_job = Start-Job -ScriptBlock  $cycler_job_block
-    $status_counter = 0;
-    $last_status = "";
-    Do {[System.Windows.Forms.Application]::DoEvents()
-        $current_count = $cycler_job.ChildJobs.Output.count;
-        $status = $cycler_job.ChildJobs.Output | Select-Object -Skip $status_counter
-        
-        if($status_counter -lt $current_count)
+    $script:status_counter = 0;
+    while(($script:cycler_job.State -eq [System.Management.Automation.JobState]::Running) -or ($script:cycler_job.ChildJobs.Output.Count -ne $script:status_counter))
+    {  
+        [System.Windows.Forms.Application]::DoEvents()
+        if(($script:cycler_job.ChildJobs.Output.count -ge 2) -and ($script:cycler_job.ChildJobs.Output[$script:status_counter] -ne $null))
         {
-            $status_counter = $current_count;
-            foreach($output in $status)
+            $output = $script:cycler_job.ChildJobs.Output[$script:status_counter]
+            $script:status_counter++
+            if(($output -ne $null) -and ($output -ne ""))
             {
-                if($output -ne $last_output)
+                if($output -match "^PB-") #Update Progress Bar Value
                 {
-                    if($output -match "^PB-") #Update Progress Bar Value
-                    {
-                        $progress_bar.value = [int]$output.substring(3,[string]$output.length -3);
-                    }
-                    elseif($output -match "^PL-") #Update Progress Bar Text
-                    {
-                        $progress_bar_label.Text = [string]$output.substring(3,[string]$output.length -3);
-                    }
-                    elseif($output -match "^TXR-") #Add Regular non-Colored Text to GUI Log WITH a Carriage Return
-                    {
-                        $output = $output.substring(4,[string]$output.length -4);
-                        $script:editor.AppendText("$output`r")
-                    }
-                    elseif($output -match "^TX-") #Add Regular non-Colored Text to GUI Log WITHOUT a Carriage Return
-                    {
-                        $output = $output.substring(3,[string]$output.length -3);
-                        $script:editor.AppendText($output)
-                    
-                    }
-                    elseif($output -match "^LN-") #Add Color Text Link to GUI
-                    {
-                        $output = $output.substring(3,[string]$output.length -3);
-                        $script:editor.ScrollToCaret();
-                        $script:editor.AppendText("$output`r")
-                        $script:editor.SelectionStart = ($script:editor.text.length - ($output.length + 1))
-                        $script:editor.SelectionLength = $output.length + 2
-                        $script:editor.SelectionColor = [Drawing.Color]::Blue
-                        $script:editor.SelectionFont = New-Object System.Drawing.Font($script:editor.SelectionFont,'Regular')
-                        #update_editor
-                    
-                    }
-                    elseif($output -match "^SNAP-") #Save the GUI Log
-                    {
-                        update_editor
-                    }
-                    elseif($output -match "-ForegroundColor") #Write Colored Text to Terminal
-                    {
-                        $out_split = $output -split "-ForegroundColor | ",3
-                        $color = $out_split[1]
-                        $text  = $out_split[2]
-                        write-host -ForegroundColor $color "$text"
-                    }
-                    elseif($output -match "^UP-") #Update Scan Loction
-                    {
-                        $output = $output.substring(3,[string]$output.length -3);
-                        $output_split = $output -split '::'
-                        $script:settings['Continue'] = $output_split[0]
-                        $script:settings['Match_Count'] = $output_split[1];
-                    }
-                    elseif($output -match "^Log-") #Update Log Information
-                    {
-                        $script:settings['Log_Folder'] = $output.substring(4,[string]$output.length -4);
-                        update_log_paths
-                    }
-                    else
-                    {
-                        write-host  $output
-                    }
-                    $last_output = $output
+                    $progress_bar.value = [int]$output.substring(3,[string]$output.length -3);
                 }
-                #else
-                #{
-                #    write-host Duplicate $output
-                #}
-            }  
-        }
-        
-    } Until (($script:cycler_job.State -ne "Running"))
-    #update_editor
+                elseif($output -match "^PL-") #Update Progress Bar Text
+                {
+                    $progress_bar_label.Text = [string]$output.substring(3,[string]$output.length -3);
+                }
+                elseif($output -match "^TXR-") #Add Regular non-Colored Text to GUI Log WITH a Carriage Return
+                {
+                    $output = $output.substring(4,[string]$output.length -4);
+                    $script:editor.AppendText("$output`r")
+                }
+                elseif($output -match "^TX-") #Add Regular non-Colored Text to GUI Log WITHOUT a Carriage Return
+                {
+                    $output = $output.substring(3,[string]$output.length -3);
+                    $script:editor.AppendText($output)
+                    
+                }
+                elseif($output -match "^LN-") #Add Color Text Link to GUI
+                {
+                    $output = $output.substring(3,[string]$output.length -3);
+                    $script:editor.ScrollToCaret();
+                    $script:editor.AppendText("$output`r")
+                    $script:editor.SelectionStart = ($script:editor.text.length - ($output.length + 1))
+                    $script:editor.SelectionLength = $output.length + 2
+                    $script:editor.SelectionColor = [Drawing.Color]::Blue
+                    $script:editor.SelectionFont = New-Object System.Drawing.Font($script:editor.SelectionFont,'Regular')
+                    #update_editor
+                    
+                }
+                elseif($output -match "^SNAP-") #Save the GUI Log
+                {
+                    update_editor
+                }
+                elseif($output -match "-ForegroundColor") #Write Colored Text to Terminal
+                {
+                    $out_split = $output -split "-ForegroundColor | ",3
+                    $color = $out_split[1]
+                    $text  = $out_split[2]
+                    write-host -ForegroundColor $color "$text"
+                }
+                elseif($output -match "^UP-") #Update Scan Loction
+                {
+                    $output = $output.substring(3,[string]$output.length -3);
+                    $output_split = $output -split '::'
+                    $script:settings['Continue'] = $output_split[0]
+                    $script:settings['Match_Count'] = $output_split[1];
+                }
+                elseif($output -match "^Log-") #Update Log Information
+                {
+                    $script:settings['Log_Folder'] = $output.substring(4,[string]$output.length -4);
+                    update_log_paths
+                }
+                else
+                {
+                    write-host  $output
+                }
+            }#Not Null                            
+        }#If Gt 2
+    }#While Status Running
+    Remove-Job $script:cycler_job
+
+    ################################################################################
+    ##Finish Out Run
     $submit_button.Text = "Run Scan"
-    #$progress_bar.Value = "0"
     $target_box.enabled = $true
     $database_dropdown.enabled = $true
     $media_dropdown.enabled = $true
@@ -3885,5 +3892,7 @@ main
 #Ver 2.2
 #Added Duplicate Tracking System for non-rename events, this is persistent accross any scan done to the same database.
 #
-
+#Ver 2.3
+#Re-ordered Scan Functions - Continue/Skip Files operations much faster 
+#
 
