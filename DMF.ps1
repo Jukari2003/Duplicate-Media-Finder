@@ -30,7 +30,7 @@ $Window = [Windows.Markup.XamlReader]::Load($Reader)
 ################################################################################
 ######Global Variables##########################################################
 $script:program_title = "Duplicate Media Finder"
-$script:version = "2.3"
+$script:version = "2.4"
 $script:settings = @{};
 
 
@@ -1312,8 +1312,7 @@ function load_existing_keys
                     {
                         if(Test-Path -LiteralPath $file_path)
                         {
-                            #write-host $file_path
-                            $mystream = [IO.MemoryStream]::new([byte[]][char[]]$file_path)
+                            $mystream = [IO.MemoryStream]::new([byte[]][char[]]($file_path -creplace '\P{IsBasicLatin}'))
                             $file_hash = (Get-FileHash -InputStream $mystream -Algorithm SHA256)
                             $file_hash = $file_hash.hash.substring(0,5);
                             [string]$size = [int](((Get-Item -LiteralPath $file_path).length/1kb))
@@ -1324,6 +1323,14 @@ function load_existing_keys
                             {
                                 $script:existing_keys.Add($file_path,$this_db) #Update Key Database
                             }
+                            else
+                            {
+                                send_single_output "-ForegroundColor RED " "Invalid Key: $line"
+                            }
+                        }
+                        else
+                        {
+                            send_single_output "-ForegroundColor RED " "File Moved/Missing: $file_path"
                         }
                     }
                     ##########################################################
@@ -2357,8 +2364,7 @@ function build_zone_fingerprints($zone,$orientation, $duration,$file_name,$fullp
     [string]$zone_s = $zone
     [string]$zone_s = $zone_s.PadLeft(2," ");
 
-    
-    $mystream = [IO.MemoryStream]::new([byte[]][char[]]$script:full_path)
+    $mystream = [IO.MemoryStream]::new([byte[]][char[]]($script:full_path -creplace '\P{IsBasicLatin}'))
     $file_hash = (Get-FileHash -InputStream $mystream -Algorithm SHA256)
     $file_hash = $file_hash.hash.substring(0,5);
     [string]$size = [int](((Get-Item -LiteralPath $script:full_path).length/1kb))
@@ -3266,7 +3272,7 @@ function update_database
             if($script:full_path_modified -ne "")
             {
                 #send_single_output "Changed Path: $script:full_path_modified"
-                $mystream = [IO.MemoryStream]::new([byte[]][char[]]$script:full_path_modified)
+                $mystream = [IO.MemoryStream]::new([byte[]][char[]]($script:full_path_modified -creplace '\P{IsBasicLatin}'))
                 $file_hash = (Get-FileHash -InputStream $mystream -Algorithm SHA256)
                 $file_hash = $file_hash.hash.substring(0,5);
                 [string]$size = [int](((Get-Item -LiteralPath $script:full_path_modified).length/1kb))
@@ -3325,7 +3331,7 @@ function merge_duplicates
             $file_hash = "";
             if(Test-Path -LiteralPath $script:new_name)
             {
-                $mystream = [IO.MemoryStream]::new([byte[]][char[]]$script:new_name)
+                $mystream = [IO.MemoryStream]::new([byte[]][char[]]($script:new_name -creplace '\P{IsBasicLatin}'))
                 $file_hash = (Get-FileHash -InputStream $mystream -Algorithm SHA256)
                 $file_hash = $file_hash.hash.substring(0,5);
                 [string]$size = [int](((Get-Item -LiteralPath $script:new_name).length/1kb))
@@ -3884,15 +3890,19 @@ function update_editor
 ######Parent Start Sequence ####################################################
 load_settings
 main
-
-#Ver 2.1
+#Ver 2.0 (23 Oct 2023)
+#First Public Release
+#
+#Ver 2.1 (26 Oct 2023)
 #Bug Fixed: Failed duration detection would generate invalid keys & invalid matches
 #Setting: Disabled Keep Screenshots
 #
-#Ver 2.2
-#Added Duplicate Tracking System for non-rename events, this is persistent accross any scan done to the same database.
+#Ver 2.2 (28 Oct 2023)
+#Enhancement: Added Duplicate Tracking System for non-rename events, this is persistent accross any scan done to the same database.
 #
-#Ver 2.3
-#Re-ordered Scan Functions - Continue/Skip Files operations much faster 
+#Ver 2.3 (21 Dec 2023)
+#Enhancement: Re-ordered Scan Functions - Continue/Skip Files operations much faster 
 #
-
+#Ver 2.4 (25 Dec 2023)
+#Bug Fixed: Fixed issue with unicode characters in file names causing MemoryStream hash generation errors
+#
